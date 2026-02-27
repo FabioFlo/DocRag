@@ -113,7 +113,7 @@ public class DocumentIngestionService {
         }
 
         // Skip unsupported types
-        if (!FileUtils.isSupportedFile(file)) {
+        if (FileUtils.isSupportedFile(file)) {
             return false;
         }
 

@@ -9,7 +9,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
@@ -18,6 +20,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Thymeleaf MVC controller — serves the main web UI at GET /.
@@ -80,7 +83,7 @@ public class WebController {
             Path targetDir = Paths.get(props.getDocumentsPath(), argument);
             Files.createDirectories(targetDir);
 
-            Path targetFile = targetDir.resolve(file.getOriginalFilename());
+            Path targetFile = targetDir.resolve(Objects.requireNonNull(file.getOriginalFilename()));
             file.transferTo(targetFile.toFile());
             log.info("Saved uploaded file to: {}", targetFile);
 

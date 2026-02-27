@@ -70,7 +70,7 @@ public class FolderWatcherService {
     }
 
     /**
-     * Registers a directory and all its sub-directories with the WatchService.
+     * Registers a directory and all its subdirectories with the WatchService.
      */
     private void registerAll(Path start) throws IOException {
         Files.walkFileTree(start, new SimpleFileVisitor<>() {

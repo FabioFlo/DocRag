@@ -45,6 +45,6 @@ public class FileUtils {
         if (!supported) {
             log.warn("Skipping unsupported file type: '{}'", file.getName());
         }
-        return supported;
+        return !supported;
     }
 }

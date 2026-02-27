@@ -5,7 +5,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * Binds the custom 'docrag.*' properties from application.yml.
- * Spring Boot auto-populates these fields on startup.
+ * Spring Boot autopopulates these fields on startup.
  */
 @Component
 @ConfigurationProperties(prefix = "docrag")
