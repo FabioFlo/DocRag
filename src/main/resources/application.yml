@@ -1,0 +1,53 @@
+spring:
+  application:
+    name: DocRag
+
+  # ── Thymeleaf ──────────────────────────────────────────────────────────────
+  thymeleaf:
+    cache: false
+    prefix: classpath:/templates/
+    suffix: .html
+
+  # ── Multipart file upload ──────────────────────────────────────────────────
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+
+  # ── Spring AI / Ollama ─────────────────────────────────────────────────────
+  ai:
+    ollama:
+      base-url: http://localhost:11434
+      chat:
+        options:
+          model: phi3:mini
+          temperature: 0.2
+          num-ctx: 4096
+      embedding:
+        options:
+          model: nomic-embed-text
+
+    # ── Qdrant vector store ─────────────────────────────────────────────────
+    vectorstore:
+      qdrant:
+        host: localhost
+        port: 6334
+        collection-name: docrag_documents
+        initialize-schema: true
+
+# ── Custom DocRAG properties ───────────────────────────────────────────────
+docrag:
+  documents-path: C:/Users/fabio.floris/docrag-documents
+  chunk-size: 500
+  chunk-overlap: 100
+  top-k: 5
+
+# ── Logging ────────────────────────────────────────────────────────────────
+logging:
+  level:
+    root: INFO
+    com.ex.docrag: DEBUG
+    org.springframework.ai: DEBUG
+    io.qdrant: INFO
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"

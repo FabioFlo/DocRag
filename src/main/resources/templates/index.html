@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DocRAG — Local Document AI</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: system-ui, sans-serif;
+            background: #0f1117;
+            color: #e2e8f0;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        h1 { font-size: 2rem; color: #7dd3fc; margin-bottom: 0.25rem; }
+        .subtitle { color: #64748b; margin-bottom: 2rem; font-size: 0.9rem; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; }
+        @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+        .card {
+            background: #1e2535;
+            border: 1px solid #2d3748;
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+        .card h2 { font-size: 1.1rem; color: #a5f3fc; margin-bottom: 1rem; }
+        label { display: block; font-size: 0.85rem; color: #94a3b8; margin-bottom: 0.35rem; }
+        input[type=text], input[type=file], select, textarea {
+            width: 100%;
+            background: #0f1117;
+            border: 1px solid #374151;
+            border-radius: 8px;
+            color: #e2e8f0;
+            padding: 0.6rem 0.8rem;
+            font-size: 0.9rem;
+            margin-bottom: 0.8rem;
+            outline: none;
+        }
+        input:focus, select:focus, textarea:focus { border-color: #7dd3fc; }
+        textarea { resize: vertical; min-height: 80px; }
+        button {
+            background: #1d4ed8;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 0.6rem 1.4rem;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover { background: #2563eb; }
+        .alert {
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            font-size: 0.88rem;
+        }
+        .alert-success { background: rgba(16,185,129,0.15); border: 1px solid #059669; color: #6ee7b7; }
+        .alert-error   { background: rgba(239,68,68,0.15);  border: 1px solid #dc2626; color: #fca5a5; }
+        .answer-card {
+            background: #1a2438;
+            border: 1px solid #1d4ed8;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .answer-card h3 { color: #7dd3fc; margin-bottom: 0.75rem; }
+        .answer-text { line-height: 1.7; white-space: pre-wrap; color: #e2e8f0; }
+        .sources { margin-top: 1.25rem; }
+        .sources h4 { color: #64748b; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.5rem; }
+        .source-chunk {
+            background: #0f1117;
+            border: 1px solid #2d3748;
+            border-radius: 6px;
+            padding: 0.6rem 0.8rem;
+            font-size: 0.8rem;
+            color: #94a3b8;
+            margin-bottom: 0.5rem;
+            line-height: 1.5;
+        }
+        .doc-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        .doc-table th { text-align: left; padding: 0.5rem 0.75rem; color: #64748b; border-bottom: 1px solid #2d3748; }
+        .doc-table td { padding: 0.5rem 0.75rem; border-bottom: 1px solid #1e2535; color: #cbd5e1; }
+        .badge {
+            display: inline-block;
+            background: rgba(125,211,252,0.1);
+            color: #7dd3fc;
+            border: 1px solid rgba(125,211,252,0.3);
+            border-radius: 4px;
+            padding: 1px 8px;
+            font-size: 0.78rem;
+        }
+        .empty-state { color: #475569; font-size: 0.88rem; padding: 1rem 0; text-align: center; }
+    </style>
+</head>
+<body>
+
+<h1>DocRAG</h1>
+<p class="subtitle">Local AI document assistant — fully offline, no cloud required</p>
+
+<!-- ── FLASH MESSAGES ─────────────────────────────────────────────── -->
+<div th:if="${uploadSuccess}" class="alert alert-success" th:text="${uploadSuccess}"></div>
+<div th:if="${uploadError}"   class="alert alert-error"   th:text="${uploadError}"></div>
+
+<!-- ── ANSWER SECTION (only shown after a query) ──────────────────── -->
+<div th:if="${queryResponse}" class="answer-card">
+    <h3>Answer</h3>
+    <div class="answer-text" th:text="${queryResponse.answer}"></div>
+
+    <div th:if="${queryResponse.argumentFilter}" style="margin-top:0.75rem; font-size:0.82rem; color:#64748b;">
+        Filtered by topic: <span class="badge" th:text="${queryResponse.argumentFilter}"></span>
+    </div>
+
+    <div th:if="${not #lists.isEmpty(queryResponse.sourceChunks)}" class="sources">
+        <h4>Source Excerpts Used</h4>
+        <div th:each="chunk : ${queryResponse.sourceChunks}" class="source-chunk" th:text="${chunk}"></div>
+    </div>
+</div>
+
+<div th:if="${answerError}" class="alert alert-error" th:text="${answerError}"></div>
+
+<!-- ── MAIN GRID ───────────────────────────────────────────────────── -->
+<div class="grid">
+
+    <!-- LEFT: Upload section -->
+    <div class="card">
+        <h2>Upload Document</h2>
+        <form action="/upload" method="post" enctype="multipart/form-data">
+            <label for="argument">Topic / Argument</label>
+            <input type="text" id="argument" name="argument" placeholder="e.g. tax-law, contracts, hr-policies"
+                   th:value="${lastArgument}" required />
+
+            <label for="file">File (PDF, DOCX, TXT)</label>
+            <input type="file" id="file" name="file" accept=".pdf,.docx,.txt" required />
+
+            <button type="submit">Upload &amp; Index</button>
+        </form>
+    </div>
+
+    <!-- RIGHT: Ask section -->
+    <div class="card">
+        <h2>Ask a Question</h2>
+        <form action="/ask" method="post">
+            <label for="question">Your Question</label>
+            <textarea id="question" name="question" rows="3"
+                      placeholder="What are the VAT rates for 2025?"
+                      th:text="${lastQuestion}"></textarea>
+
+            <label for="topicFilter">Filter by Topic (optional)</label>
+            <select id="topicFilter" name="argument">
+                <option value="">— All topics —</option>
+                <option th:each="arg : ${arguments}"
+                        th:value="${arg}"
+                        th:text="${arg}"
+                        th:selected="${arg == lastArgument}">
+                </option>
+            </select>
+
+            <button type="submit">Ask</button>
+        </form>
+    </div>
+
+</div>
+
+<!-- ── INDEXED DOCUMENTS ──────────────────────────────────────────── -->
+<div class="card">
+    <h2>Indexed Documents (<span th:text="${documentCount}">0</span>)</h2>
+
+    <div th:if="${#lists.isEmpty(documents)}" class="empty-state">
+        No documents indexed yet. Upload files above or place them in the documents folder.
+    </div>
+
+    <table th:if="${not #lists.isEmpty(documents)}" class="doc-table">
+        <thead>
+            <tr>
+                <th>File</th>
+                <th>Topic</th>
+                <th>Size</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="doc : ${documents}">
+                <td th:text="${doc.fileName}">file.pdf</td>
+                <td><span class="badge" th:text="${doc.argument}">topic</span></td>
+                <td th:text="${#numbers.formatDecimal(doc.fileSizeBytes / 1024.0, 1, 1)} + ' KB'">0 KB</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+</body>
+</html>
